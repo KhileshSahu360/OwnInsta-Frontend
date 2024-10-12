@@ -1,7 +1,7 @@
 import React from 'react'
 import { ColorRing } from 'react-loader-spinner'
 
-const Loader = () => {
+const Loader = ({colors=['white','white','white','white','white']}) => {
   return (
     
   <ColorRing
@@ -11,7 +11,7 @@ const Loader = () => {
     ariaLabel="color-ring-loading"
     wrapperStyle={{}}
     wrapperClass="color-ring-wrapper"
-    colors={['white','white','white','white','white']}
+    colors={colors}
     />
   )
 }

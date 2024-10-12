@@ -1,9 +1,107 @@
 import Card from '@/components/Card'
-import React from 'react'
+import Loader from '@/components/Loader';
+import { tokenSliceAction } from '@/Store/store';
+import axios from 'axios';
+import React, { useEffect, useState } from 'react'
+import { useDispatch, useSelector } from 'react-redux';
+import { useNavigate } from 'react-router-dom';
 
 const AllPosts = () => {
-  return (
-    <div className=' '>
+
+  const navigate = useNavigate()
+  document.title = 'All post'
+
+  const { auth, accessToken } = useSelector((store)=>store.tokenSlice)
+  const dispatch = useDispatch();
+
+  const [loader, setLoader] = useState(false);
+
+
+
+  useEffect(()=>{
+  },[])
+
+  const fetchAccessToken = async (token) => {
+    const fbExchangeToken = `${token}`; // Replace with the short-lived access token
+
+    
+    const url = `https://graph.facebook.com/v20.0/oauth/access_token?` +
+    `grant_type=fb_exchange_token&` +
+    `client_id=${import.meta.env.VITE_CLIENT_ID}&` +
+    `client_secret=${import.meta.env.VITE_CLIENT_SECRET}&` +
+    `fb_exchange_token=${fbExchangeToken}`;
+
+      try {
+        const response = await fetch(url, {
+          method: 'GET',
+      });
+
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch access token');
+      }
+  
+      const data = await response.json();
+
+      // fetchData(data.access_token)
+      if(!data.access_token) return navigate('/')
+
+      //getting page access token
+      const at = "EAAM4agkmgqEBOxsoXRJNW4CycOc9YSl70aZB4gdSe6WjVF9n6qGuRyUOoR4qmZALxDX0XdkMnuZA4njzYvecS0y8pmjrZAOLDvl7ovZBWAVb8JhwN0UiNQaUkzyrZCzBNtJZAcBJKaC7sbT0lVuTDiTcWZApOEryhSiVf8ixq5vaRIF3v35NgxG8xZBPMtwTYNasJ"
+      const response2 = await axios.get(`https://graph.facebook.com/me?access_token=${at}`);
+      console.log('Your User ID:', response2.data.id); // This is your User ID
+      
+      const response3 = await axios.get(`https://graph.facebook.com/${response2.data.id}/accounts?access_token=${at}`);
+      console.log(response3)
+
+
+      localStorage.setItem('access_token',data.access_token)
+      localStorage.setItem('page_id',response3.data.data[0].id)
+      localStorage.setItem('page_access_token',response3.data.data[0].access_token)
+
+      dispatch(tokenSliceAction.setPageAccessToken(response3.data.data[0].access_token))
+      dispatch(tokenSliceAction.setPageId(response3.data.data[0].id))
+      dispatch(tokenSliceAction.setAccessToken(data.access_token))
+      // Handle the new access token here
+    } catch (error) {
+
+      console.error('Error fetching access token:', error);
+    }
+    setLoader(false)
+  }
+
+
+
+
+
+
+  useEffect(() => {
+    setLoader(true)
+    // Get the URL fragment (after the #)
+    const urlFragment = window.location.hash;
+
+    
+    // Create URLSearchParams from the fragment (remove the leading '#')
+    const params = new URLSearchParams(urlFragment.slice(1));
+    
+    // Get the access_token from the parameters
+    let token = params.get('access_token');
+
+    const access_token = localStorage.getItem('access_token');
+
+    if(access_token){
+      dispatch(tokenSliceAction.setAccessToken(access_token))
+    }else{
+      if(!token) return () => setLoader(false)
+      fetchAccessToken(token);
+
+    }
+  }, []);
+
+ 
+  return (<>
+  
+    { accessToken ? <div className=' '>
 
       <div className='p-4 ml-4'>
         <label htmlFor="" className='font-bold text-[1.2rem]'>My Profile</label>
@@ -47,7 +145,14 @@ const AllPosts = () => {
       <Card/>
       <Card/>
       </div>
-    </div>
+    </div> : loader ?<div className='h-[calc(100vh-56px)] flex justify-center items-center'>
+              <Loader colors={['pink','pink','pink','pink','pink']}/>
+        </div>
+      :<div className='h-[calc(100vh-56px)] flex justify-center items-center'>
+          <label htmlFor="" className='text-red-600 font-bold'>Please Login first</label>
+      </div>
+      }
+    </>
   )
 }
 
